@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import { env } from './env.js';
 import { startEventSpine } from './events.js';
 import { authRoutes } from './routes/auth.js';
+import { eventRoutes } from './routes/events.js';
 import { registerWebSocket } from './ws.js';
 
 const app = Fastify({
@@ -19,6 +20,9 @@ app.get('/healthz', async () => ({
 
 // Auth + protected route (M1).
 await app.register(authRoutes);
+
+// Dashboard read API (M4): recent events + basic stats.
+await app.register(eventRoutes);
 
 // Event spine (M2): WebSocket endpoint for the dashboard + NATS ingestion.
 await registerWebSocket(app);
