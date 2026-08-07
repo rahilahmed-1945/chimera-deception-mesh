@@ -1,0 +1,76 @@
+# Chimera — Zerops runtime service definitions.
+# STUB: structurally valid but finalized at the first real deploy (milestone M4).
+# Managed services (postgres, valkey, nats, storage) are provisioned separately in the
+# Zerops dashboard (service catalog / import), NOT defined here.
+# Budget rules that govern every service: free Lightweight core, shared CPU + 0.25 GB RAM,
+# worker-enrich scales to zero when idle.
+
+zerops:
+  # --- Control plane: REST + WebSocket ------------------------------------------
+  - setup: api
+    build:
+      base: nodejs@22
+      buildCommands:
+        - npm i -g pnpm
+        - pnpm install --frozen-lockfile
+        - pnpm --filter @chimera/api build
+      deployFiles: ./
+    run:
+      base: nodejs@22
+      ports:
+        - port: 3000
+          httpSupport: true
+      start: pnpm --filter @chimera/api start
+
+  # --- Dashboard: static SvelteKit build ----------------------------------------
+  - setup: web
+    build:
+      base: nodejs@22
+      buildCommands:
+        - npm i -g pnpm
+        - pnpm install --frozen-lockfile
+        - pnpm --filter @chimera/web build
+      deployFiles: apps/web/build
+    run:
+      base: static
+
+  # --- Hero decoy: SSH honeypot (public TCP 2222) -------------------------------
+  - setup: decoy-ssh
+    build:
+      base: nodejs@22
+      buildCommands:
+        - npm i -g pnpm
+        - pnpm install --frozen-lockfile
+      deployFiles: ./
+    run:
+      base: nodejs@22
+      ports:
+        - port: 2222
+      start: pnpm --filter @chimera/decoy-ssh start
+
+  # --- Second decoy: fake HTTP admin panel (public TCP 8080) --------------------
+  - setup: decoy-http
+    build:
+      base: nodejs@22
+      buildCommands:
+        - npm i -g pnpm
+        - pnpm install --frozen-lockfile
+      deployFiles: ./
+    run:
+      base: nodejs@22
+      ports:
+        - port: 8080
+          httpSupport: true
+      start: pnpm --filter @chimera/decoy-http start
+
+  # --- Enrichment worker: autoscales to zero when idle (configured at M5) -------
+  - setup: worker-enrich
+    build:
+      base: nodejs@22
+      buildCommands:
+        - npm i -g pnpm
+        - pnpm install --frozen-lockfile
+      deployFiles: ./
+    run:
+      base: nodejs@22
+      start: pnpm --filter @chimera/worker-enrich start
