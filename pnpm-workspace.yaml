@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'apps/decoys/*'
+  - 'packages/*'
+
+# esbuild ships its platform binary via an optional dependency and uses an
+# install script to wire it up; tsx and Vite both rely on it, so allow it.
+allowBuilds:
+  esbuild: true
