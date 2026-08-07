@@ -3,7 +3,9 @@ import Fastify from 'fastify';
 import { env } from './env.js';
 import { startEventSpine } from './events.js';
 import { authRoutes } from './routes/auth.js';
+import { decoyRoutes } from './routes/decoys.js';
 import { eventRoutes } from './routes/events.js';
+import { searchRoutes } from './routes/search.js';
 import { registerWebSocket } from './ws.js';
 
 const app = Fastify({
@@ -23,6 +25,10 @@ await app.register(authRoutes);
 
 // Dashboard read API (M4): recent events + basic stats.
 await app.register(eventRoutes);
+
+// Deploy flow + Intel Explorer search (M6).
+await app.register(decoyRoutes);
+await app.register(searchRoutes);
 
 // Event spine (M2): WebSocket endpoint for the dashboard + NATS ingestion.
 await registerWebSocket(app);
