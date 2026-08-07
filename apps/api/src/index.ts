@@ -1,5 +1,7 @@
-import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import Fastify from 'fastify';
+import { env } from './env.js';
+import { authRoutes } from './routes/auth.js';
 
 const app = Fastify({
   logger: true,
@@ -7,18 +9,17 @@ const app = Fastify({
 
 await app.register(cors, { origin: true });
 
-// M0 liveness probe. The real control-plane routes (auth, decoys, events,
-// WebSocket) are added from M1 onward.
+// Liveness probe.
 app.get('/healthz', async () => ({
   status: 'ok',
   service: 'api',
 }));
 
-const port = Number(process.env.PORT ?? 3000);
-const host = '0.0.0.0';
+// Auth + protected route (M1). The event/decoy/WebSocket routes arrive from M2.
+await app.register(authRoutes);
 
 try {
-  await app.listen({ port, host });
+  await app.listen({ port: env.PORT, host: '0.0.0.0' });
 } catch (err) {
   app.log.error(err);
   process.exit(1);
