@@ -15,6 +15,13 @@
       "when": 1786110078981,
       "tag": "0001_useful_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786111918333,
+      "tag": "0002_search_vector",
+      "breakpoints": true
     }
   ]
 }

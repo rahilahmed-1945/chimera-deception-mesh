@@ -30,3 +30,41 @@ export interface EventDetail extends EventRow {
   longitude: number | null;
   reputation: string | null;
 }
+
+export interface Template {
+  id: string;
+  key: string;
+  name: string;
+  protocol: string;
+  defaultPort: number;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface Decoy {
+  id: string;
+  tenantId: string;
+  templateId: string;
+  name: string;
+  status: string;
+  lastEventAt: string | null;
+  createdAt: string;
+  protocol: string;
+}
+
+export interface Facet {
+  value: string;
+  count: number;
+}
+
+export interface SearchResponse {
+  results: (EventRow & { reputation: string | null })[];
+  facets: { kind: Facet[]; decoyType: Facet[]; reputation: Facet[] };
+}
+
+export interface SearchParams {
+  q?: string;
+  kind?: string;
+  decoyType?: string;
+  reputation?: string;
+}

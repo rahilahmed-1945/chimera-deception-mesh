@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fetchRecentEvents, fetchStats } from '$lib/api';
+  import DecoysPanel from '$lib/components/DecoysPanel.svelte';
   import EventDetail from '$lib/components/EventDetail.svelte';
   import EventList from '$lib/components/EventList.svelte';
   import KpiCards from '$lib/components/KpiCards.svelte';
@@ -55,9 +56,12 @@
       <h1 class="text-2xl font-semibold tracking-tight text-neutral-100">Chimera</h1>
       <p class="text-sm text-neutral-500">Deception Mesh — live events</p>
     </div>
-    <span class="text-xs {store.wsStatus === 'open' ? 'text-emerald-400' : 'text-red-400'}">
-      ● {store.wsStatus === 'open' ? 'live' : 'reconnecting…'}
-    </span>
+    <div class="flex items-baseline gap-4">
+      <a href="/intel" class="text-xs text-sky-400 hover:underline">Intel Explorer →</a>
+      <span class="text-xs {store.wsStatus === 'open' ? 'text-emerald-400' : 'text-red-400'}">
+        ● {store.wsStatus === 'open' ? 'live' : 'reconnecting…'}
+      </span>
+    </div>
   </header>
 
   {#if store.restError}
@@ -68,6 +72,10 @@
   {/if}
 
   <KpiCards stats={store.stats} />
+
+  <div class="mt-4">
+    <DecoysPanel />
+  </div>
 
   <div class="mt-6 grid gap-4 lg:grid-cols-[1fr_20rem]">
     <EventList events={store.events} selectedId={store.selectedId} onselect={store.select} />
