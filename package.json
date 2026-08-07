@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx infra/seed/seed.ts"
+    "db:seed": "tsx infra/seed/seed.ts",
+    "db:seed:demo": "tsx infra/seed/seed-demo.ts"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
