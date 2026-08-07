@@ -11,6 +11,7 @@ config({ path: resolve(here, '../../../.env') });
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
+  NATS_URL: z.string().url(),
   JWT_SECRET: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(3000),
   NODE_ENV: z.string().default('development'),

@@ -8,3 +8,7 @@ const queryClient = postgres(env.DATABASE_URL);
 
 export const db = drizzle(queryClient, { schema });
 export { schema };
+
+// Re-export the query operators so scripts in non-package folders (e.g.
+// infra/seed) can use them without resolving `drizzle-orm` on their own.
+export { eq, sql } from 'drizzle-orm';
