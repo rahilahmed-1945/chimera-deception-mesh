@@ -1,10 +1,33 @@
+import { connectNats, subscribeEvents, type NatsConnection } from '@chimera/transport';
 import pino from 'pino';
+import { enrichEvent } from './enrich.js';
 
 const log = pino({ name: 'worker-enrich' });
+const natsUrl = process.env.NATS_URL ?? 'nats://localhost:4222';
 
-// M0 placeholder. From M5 this process consumes deception events from NATS and
-// enriches them (GeoIP, reputation, MITRE mapping, transcript -> object storage).
-log.info('worker-enrich skeleton started — no consumers wired yet (see M5).');
+async function main(): Promise<void> {
+  // Always-on consumer of the existing event spine (D1/D2). No JetStream.
+  const nc: NatsConnection = await connectNats(natsUrl, 'worker-enrich');
+  log.info('connected to NATS; enriching events');
 
-// Keep the process alive so it behaves like the long-running worker it will become.
-setInterval(() => {}, 1 << 30);
+  await subscribeEvents(nc, async (event) => {
+    try {
+      await enrichEvent(event, log);
+    } catch (err) {
+      log.error({ err }, 'enrichment failed; continuing');
+    }
+  });
+
+  const shutdown = async (): Promise<void> => {
+    log.info('shutting down worker-enrich');
+    await nc.drain().catch(() => undefined);
+    process.exit(0);
+  };
+  process.on('SIGINT', () => void shutdown());
+  process.on('SIGTERM', () => void shutdown());
+}
+
+main().catch((err) => {
+  log.error({ err }, 'worker-enrich failed to start');
+  process.exit(1);
+});

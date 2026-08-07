@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  cidr,
   doublePrecision,
   index,
   inet,
@@ -132,4 +133,18 @@ export const events = pgTable(
     index('events_decoy_created_idx').on(t.decoyId, t.createdAt.desc()),
     index('events_attacker_idx').on(t.attackerId),
   ],
+);
+
+// --- threat_intel: static reputation reference data (global, no tenant) -------
+// First used at M5 for reputation enrichment. Matched to attackers.ip via CIDR
+// containment (ip <<= indicator).
+export const threatIntel = pgTable(
+  'threat_intel',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    indicator: cidr('indicator').notNull(),
+    category: text('category'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('threat_intel_indicator_key').on(t.indicator)],
 );

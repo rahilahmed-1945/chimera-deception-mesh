@@ -21,3 +21,12 @@ export interface Stats {
   decoys: number;
   lastHour: number;
 }
+
+// Enriched single-event response from GET /events/:id (event + attacker geo/reputation).
+export interface EventDetail extends EventRow {
+  countryCode: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  reputation: string | null;
+}

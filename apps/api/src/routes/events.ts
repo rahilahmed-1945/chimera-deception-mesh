@@ -31,6 +31,37 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(rows);
   });
 
+  // One enriched event for the detail drawer: joins the attacker's geo +
+  // reputation (populated asynchronously by worker-enrich). Read-only.
+  app.get('/events/:id', async (req, reply) => {
+    const params = z.object({ id: z.string().uuid() }).safeParse(req.params);
+    if (!params.success) {
+      return reply.code(400).send({ error: 'invalid_id' });
+    }
+
+    const [row] = await db
+      .select({
+        ...getTableColumns(events),
+        decoyType: decoyTemplates.protocol,
+        countryCode: attackers.countryCode,
+        city: attackers.city,
+        latitude: attackers.latitude,
+        longitude: attackers.longitude,
+        reputation: attackers.reputation,
+      })
+      .from(events)
+      .innerJoin(decoys, eq(events.decoyId, decoys.id))
+      .innerJoin(decoyTemplates, eq(decoys.templateId, decoyTemplates.id))
+      .innerJoin(attackers, eq(events.attackerId, attackers.id))
+      .where(eq(events.id, params.data.id))
+      .limit(1);
+
+    if (!row) {
+      return reply.code(404).send({ error: 'not_found' });
+    }
+    return reply.send(row);
+  });
+
   // Basic dashboard counters.
   app.get('/stats', async (_req, reply) => {
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000);

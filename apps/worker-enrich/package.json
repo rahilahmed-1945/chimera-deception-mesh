@@ -10,6 +10,13 @@
   },
   "dependencies": {
     "@chimera/shared": "workspace:*",
-    "pino": "^9.5.0"
+    "@chimera/transport": "workspace:*",
+    "drizzle-orm": "^0.36.0",
+    "geoip-lite": "^1.4.10",
+    "pino": "^9.5.0",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/geoip-lite": "^1.4.4"
   }
 }
