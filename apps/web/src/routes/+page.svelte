@@ -1,32 +1,76 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { fetchRecentEvents, fetchStats } from '$lib/api';
+  import EventDetail from '$lib/components/EventDetail.svelte';
+  import EventList from '$lib/components/EventList.svelte';
+  import KpiCards from '$lib/components/KpiCards.svelte';
+  import { store } from '$lib/stores/events.svelte';
+  import type { EventRow } from '$lib/types';
   import { connectEvents } from '$lib/ws';
 
-  let status = $state<'open' | 'closed'>('closed');
-  let events = $state<unknown[]>([]);
+  async function hydrate(): Promise<void> {
+    try {
+      const [rows, stats] = await Promise.all([fetchRecentEvents(100), fetchStats()]);
+      store.hydrate(rows);
+      store.setStats(stats);
+    } catch (err) {
+      store.setError(err instanceof Error ? err.message : 'failed to load');
+    }
+  }
 
-  onMount(() =>
-    connectEvents({
-      onStatus: (s) => (status = s),
-      onEvent: (e) => (events = [e, ...events].slice(0, 100)),
-    }),
-  );
+  onMount(() => {
+    let hadClosed = false;
+    void hydrate();
+
+    const disconnect = connectEvents({
+      onEvent: (e) => store.addLive(e as EventRow),
+      onStatus: (s) => {
+        store.setStatus(s);
+        if (s === 'closed') {
+          hadClosed = true;
+        } else if (s === 'open' && hadClosed) {
+          // Re-hydrate from REST after every successful reconnect (backfill).
+          hadClosed = false;
+          void hydrate();
+        }
+      },
+    });
+
+    const statsTimer = setInterval(() => {
+      fetchStats()
+        .then(store.setStats)
+        .catch(() => undefined);
+    }, 10000);
+
+    return () => {
+      disconnect();
+      clearInterval(statsTimer);
+    };
+  });
 </script>
 
-<div class="min-h-screen p-8">
-  <h1 class="text-2xl font-semibold tracking-tight text-neutral-100">Chimera</h1>
-  <p class="mt-1 text-sm text-neutral-500">Event spine (M2)</p>
-  <p class="mt-1 text-xs text-neutral-600">
-    WebSocket:
-    <span class={status === 'open' ? 'text-emerald-400' : 'text-red-400'}>{status}</span>
-    · {events.length} event{events.length === 1 ? '' : 's'}
-  </p>
+<div class="min-h-screen p-6">
+  <header class="mb-6 flex items-baseline justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight text-neutral-100">Chimera</h1>
+      <p class="text-sm text-neutral-500">Deception Mesh — live events</p>
+    </div>
+    <span class="text-xs {store.wsStatus === 'open' ? 'text-emerald-400' : 'text-red-400'}">
+      ● {store.wsStatus === 'open' ? 'live' : 'reconnecting…'}
+    </span>
+  </header>
 
-  <ul class="mt-6 space-y-2 font-mono text-xs text-neutral-300">
-    {#each events as event, i (i)}
-      <li class="overflow-x-auto rounded border border-neutral-800 bg-neutral-900 p-2">
-        {JSON.stringify(event)}
-      </li>
-    {/each}
-  </ul>
+  {#if store.restError}
+    <div class="mb-4 rounded border border-red-900 bg-red-950/40 p-2 text-xs text-red-300">
+      {store.restError} ·
+      <button type="button" class="underline" onclick={hydrate}>retry</button>
+    </div>
+  {/if}
+
+  <KpiCards stats={store.stats} />
+
+  <div class="mt-6 grid gap-4 lg:grid-cols-[1fr_20rem]">
+    <EventList events={store.events} selectedId={store.selectedId} onselect={store.select} />
+    <EventDetail event={store.selected} />
+  </div>
 </div>
