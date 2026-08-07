@@ -12,10 +12,15 @@
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "lint": "prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx infra/seed/seed.ts"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
+    "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.28.0",
     "prettier": "^3.3.3",
     "prettier-plugin-svelte": "^3.2.7",
     "tsx": "^4.19.2",

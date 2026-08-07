@@ -2,4 +2,6 @@ node_modules
 **/build
 **/dist
 **/.svelte-kit
+infra/migrations
 pnpm-lock.yaml
+docs/chimera-phase1-schema.md
