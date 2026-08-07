@@ -10,3 +10,6 @@ build/
 /tmp
 coverage/
 .zerops/
+
+# SSH decoy host key (generated locally on first run, never committed)
+apps/decoys/ssh/.hostkey/

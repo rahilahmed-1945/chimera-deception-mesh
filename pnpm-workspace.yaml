@@ -5,5 +5,9 @@ packages:
 
 # esbuild ships its platform binary via an optional dependency and uses an
 # install script to wire it up; tsx and Vite both rely on it, so allow it.
+# ssh2 / cpu-features only build an OPTIONAL native crypto accelerator; ssh2
+# runs fine in pure-JS mode, so we skip their native build.
 allowBuilds:
   esbuild: true
+  ssh2: false
+  cpu-features: false
