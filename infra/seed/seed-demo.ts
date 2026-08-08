@@ -1,8 +1,8 @@
 import { db, eq } from '../../apps/api/src/db/client.js';
 import { decoyTemplates, decoys, tenants } from '../../apps/api/src/db/schema.js';
 
-// Fixed ids so the publisher can target the demo decoy without a lookup.
-// DECOY_ID must match apps/decoys/ssh/src/publisher.ts.
+// Fixed ids so the ssh decoy binds its events to this seeded decoy without a
+// lookup. DECOY_ID must match apps/decoys/ssh/src/index.ts.
 const DEMO_TENANT_ID = process.env.DEMO_TENANT_ID ?? '00000000-0000-0000-0000-0000000000a1';
 const DEMO_DECOY_ID = process.env.DECOY_ID ?? '00000000-0000-0000-0000-0000000000d1';
 const DEMO_HTTP_DECOY_ID = process.env.DECOY_HTTP_ID ?? '00000000-0000-0000-0000-0000000000d2';

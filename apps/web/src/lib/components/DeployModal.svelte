@@ -34,15 +34,19 @@
   }
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-  <div class="w-full max-w-sm space-y-4 rounded-lg border border-neutral-800 bg-neutral-900 p-5">
-    <h2 class="text-lg font-semibold text-neutral-100">Deploy a decoy</h2>
-    {#if error}<p class="text-xs text-red-400">{error}</p>{/if}
-    <label class="block text-sm text-neutral-400">
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
+>
+  <div
+    class="border-border-hairline bg-surface-elevated my-auto max-h-[90vh] w-full max-w-sm space-y-4 overflow-y-auto rounded-lg border p-5"
+  >
+    <h2 class="t-section text-text-primary text-lg">Deploy a decoy</h2>
+    {#if error}<p class="text-threat text-xs">{error}</p>{/if}
+    <label class="text-text-secondary block text-sm">
       Template
       <select
         bind:value={selected}
-        class="mt-1 w-full rounded border border-neutral-700 bg-neutral-950 p-2 text-neutral-100"
+        class="border-border-hairline bg-surface-inset text-text-primary mt-1 w-full rounded border p-2"
       >
         {#each templates as t (t.id)}
           <option value={t.id}>{t.name} (:{t.defaultPort})</option>
@@ -53,13 +57,14 @@
       <button
         type="button"
         onclick={onclose}
-        class="rounded px-3 py-1.5 text-sm text-neutral-400 hover:text-neutral-200">Cancel</button
+        class="text-text-secondary hover:text-text-primary rounded-md px-3 py-2 text-sm transition-colors"
+        >Cancel</button
       >
       <button
         type="button"
         onclick={deploy}
         disabled={busy || !selected}
-        class="rounded bg-sky-700 px-3 py-1.5 text-sm text-white hover:bg-sky-600 disabled:opacity-50"
+        class="border-accent/30 bg-accent/15 text-accent hover:bg-accent/25 rounded-md border px-3 py-2 text-sm transition-colors disabled:opacity-50"
       >
         {busy ? 'Deploying…' : 'Deploy'}
       </button>

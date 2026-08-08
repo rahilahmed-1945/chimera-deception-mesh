@@ -1,28 +1,49 @@
-# Chimera — Zerops runtime service definitions.
-# STUB: structurally valid but finalized at the first real deploy (milestone M4).
-# Managed services (postgres, valkey, nats, storage) are provisioned separately in the
-# Zerops dashboard (service catalog / import), NOT defined here.
-# Budget rules that govern every service: free Lightweight core, shared CPU + 0.25 GB RAM,
-# worker-enrich scales to zero when idle.
+# Chimera — Zerops deployment (P2: first-cut smoke deploy).
+#
+# Five runtime services defined here. The managed services are provisioned
+# separately in the Zerops dashboard and MUST use these hostnames so the
+# ${...} references below resolve:
+#   - PostgreSQL  ->  hostname: db     (exposes ${db_connectionString})
+#   - NATS        ->  hostname: nats   (exposes ${nats_hostname})
+#
+# Budget: free Lightweight core; shared CPU + 0.25 GB RAM per service.
+# NOT in this first cut (added at P18): object storage, Valkey, worker autoscaling.
+# All tsx services ship source + node_modules via `deployFiles: ./` and run with tsx.
 
 zerops:
-  # --- Control plane: REST + WebSocket ------------------------------------------
+  # --- Control plane: REST + WebSocket (public HTTP, port 3000) ---------------
   - setup: api
     build:
       base: nodejs@22
       buildCommands:
         - npm i -g pnpm
         - pnpm install --frozen-lockfile
-        - pnpm --filter @chimera/api build
       deployFiles: ./
     run:
       base: nodejs@22
       ports:
         - port: 3000
-          httpSupport: true
+          httpSupport: true # public HTTP + WebSocket upgrade on /ws
+      envVariables:
+        NODE_ENV: production
+        PORT: '3000'
+        DATABASE_URL: '${db_connectionString}'
+        NATS_URL: 'nats://${nats_hostname}:4222'
+        # JWT_SECRET is set as a SECRET env var on this service in the dashboard.
+      initCommands:
+        # Idempotent: drizzle-kit migrate applies only pending migrations;
+        # every seed uses ON CONFLICT DO NOTHING, so re-running on each start is safe.
+        - pnpm db:migrate
+        - pnpm db:seed
+        - pnpm db:seed:demo
+        - pnpm db:seed:intel
+      healthCheck:
+        httpGet:
+          port: 3000
+          path: /healthz
       start: pnpm --filter @chimera/api start
 
-  # --- Dashboard: static SvelteKit build ----------------------------------------
+  # --- Dashboard: static SvelteKit build (public HTTP) -----------------------
   - setup: web
     build:
       base: nodejs@22
@@ -31,10 +52,14 @@ zerops:
         - pnpm install --frozen-lockfile
         - pnpm --filter @chimera/web build
       deployFiles: apps/web/build
+      # VITE_API_URL must equal the api's PUBLIC URL at build time. Set it as an
+      # env var on this `web` service in the dashboard, then redeploy web, e.g.
+      #   VITE_API_URL=https://<api-public-subdomain>
+      # (P1: the client derives both the REST base and the WS URL from it.)
     run:
       base: static
 
-  # --- Hero decoy: SSH honeypot (public TCP 2222) -------------------------------
+  # --- Hero decoy: SSH honeypot (public TCP 2222) ----------------------------
   - setup: decoy-ssh
     build:
       base: nodejs@22
@@ -45,10 +70,14 @@ zerops:
     run:
       base: nodejs@22
       ports:
-        - port: 2222
+        - port: 2222 # raw TCP (no httpSupport) so attackers reach the SSH server
+      envVariables:
+        NATS_URL: 'nats://${nats_hostname}:4222'
+        DECOY_SSH_PORT: '2222'
+        # DECOY_ID defaults in code to the seeded demo ssh decoy id.
       start: pnpm --filter @chimera/decoy-ssh start
 
-  # --- Second decoy: fake HTTP admin panel (public TCP 8080) --------------------
+  # --- Second decoy: fake HTTP admin panel (public HTTP 8080) -----------------
   - setup: decoy-http
     build:
       base: nodejs@22
@@ -60,10 +89,18 @@ zerops:
       base: nodejs@22
       ports:
         - port: 8080
-          httpSupport: true
+          httpSupport: true # public HTTP; attackers browse the fake login
+      envVariables:
+        NATS_URL: 'nats://${nats_hostname}:4222'
+        DECOY_HTTP_PORT: '8080'
+        # DECOY_HTTP_ID defaults in code to the seeded demo http decoy id.
+      healthCheck:
+        httpGet:
+          port: 8080
+          path: /
       start: pnpm --filter @chimera/decoy-http start
 
-  # --- Enrichment worker: autoscales to zero when idle (configured at M5) -------
+  # --- Enrichment worker: NO public port -------------------------------------
   - setup: worker-enrich
     build:
       base: nodejs@22
@@ -73,4 +110,7 @@ zerops:
       deployFiles: ./
     run:
       base: nodejs@22
+      envVariables:
+        DATABASE_URL: '${db_connectionString}'
+        NATS_URL: 'nats://${nats_hostname}:4222'
       start: pnpm --filter @chimera/worker-enrich start

@@ -17,7 +17,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx infra/seed/seed.ts",
     "db:seed:demo": "tsx infra/seed/seed-demo.ts",
-    "db:seed:intel": "tsx infra/seed/seed-threat-intel.ts"
+    "db:seed:intel": "tsx infra/seed/seed-threat-intel.ts",
+    "demo:export": "tsx infra/demo/export-session.ts",
+    "demo:replay": "tsx infra/demo/replay.ts"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

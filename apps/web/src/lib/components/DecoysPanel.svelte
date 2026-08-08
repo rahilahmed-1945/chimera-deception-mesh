@@ -28,35 +28,38 @@
   }
 </script>
 
-<div class="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+<div class="border-border-subtle bg-surface-panel rounded-lg border p-4">
   <div class="mb-3 flex items-center justify-between">
-    <h2 class="text-sm font-semibold text-neutral-200">Decoys</h2>
+    <h2 class="t-section text-text-primary">Decoys</h2>
     <button
       type="button"
       onclick={() => (showDeploy = true)}
-      class="rounded bg-sky-700 px-2.5 py-1 text-xs text-white hover:bg-sky-600">Deploy</button
+      class="border-accent/30 bg-accent/15 text-accent hover:bg-accent/25 rounded-md border px-3 py-1.5 text-xs transition-colors"
+      >Deploy</button
     >
   </div>
   <ul class="space-y-1">
     {#each decoys as d (d.id)}
       <li class="flex items-center gap-2 text-xs">
-        <span class="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] uppercase text-neutral-300"
+        <span
+          class="t-micro bg-surface-inset text-text-secondary rounded px-1.5 py-0.5 leading-none"
           >{d.protocol}</span
         >
-        <span class="text-neutral-200">{d.name}</span>
-        <span class="text-[10px] {d.status === 'active' ? 'text-emerald-400' : 'text-neutral-500'}"
+        <span class="text-text-primary">{d.name}</span>
+        <span class="t-data text-[10px] {d.status === 'active' ? 'text-ok' : 'text-text-muted'}"
           >{d.status}</span
         >
         {#if d.status === 'active'}
           <button
             type="button"
             onclick={() => remove(d.id)}
-            class="ml-auto text-[10px] text-red-400 hover:text-red-300">destroy</button
+            class="text-threat hover:text-threat-bright ml-auto text-[10px] transition-colors"
+            >destroy</button
           >
         {/if}
       </li>
     {:else}
-      <li class="text-xs text-neutral-600">No decoys</li>
+      <li class="text-xs text-text-muted">No decoys</li>
     {/each}
   </ul>
 </div>

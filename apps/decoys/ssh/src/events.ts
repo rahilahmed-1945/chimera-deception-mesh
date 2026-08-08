@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { DeceptionEvent, EventKind } from '@chimera/shared';
 
 /**
- * Single source of truth for constructing SSH DeceptionEvents. Both the live
- * honeypot and the demo/smoke-test publisher build events through here.
+ * Single source of truth for constructing the SSH honeypot's DeceptionEvents
+ * (connection, auth attempt, command, disconnect).
  */
 
 export interface SshSession {
@@ -47,4 +47,12 @@ export function buildAuthAttemptEvent(
     password: clamp(attempt.password),
     method: attempt.method ?? 'password',
   });
+}
+
+export function buildCommandEvent(session: SshSession, command: string): DeceptionEvent {
+  return sshEvent(session, 'command', { command: clamp(command) });
+}
+
+export function buildDisconnectEvent(session: SshSession): DeceptionEvent {
+  return sshEvent(session, 'disconnect', {});
 }
