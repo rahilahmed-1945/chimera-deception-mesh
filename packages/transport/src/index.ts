@@ -1,4 +1,10 @@
-import { connect, JSONCodec, type NatsConnection, type Subscription } from 'nats';
+import {
+  connect,
+  JSONCodec,
+  type ConnectionOptions,
+  type NatsConnection,
+  type Subscription,
+} from 'nats';
 import {
   EVENT_SUBJECT,
   parseDeceptionEvent,
@@ -19,13 +25,29 @@ export type { NatsConnection, Subscription } from 'nats';
 const codec = JSONCodec<unknown>();
 
 export async function connectNats(url: string, name: string): Promise<NatsConnection> {
-  return connect({
+  const options: ConnectionOptions = {
     servers: url,
     name,
     reconnect: true,
     maxReconnectAttempts: -1,
     waitOnFirstConnect: true,
-  });
+  };
+  // nats.js does not read credentials embedded in the server URL (it strips the
+  // userinfo when parsing host:port). Managed brokers like Zerops require auth
+  // and expose a credentialed URL (nats://user:pass@host:4222), so lift any
+  // user:pass into explicit auth options. A URL without credentials is left
+  // untouched, so local dev (nats://localhost:4222) stays unauthenticated.
+  try {
+    const parsed = new URL(url);
+    if (parsed.username) {
+      options.user = decodeURIComponent(parsed.username);
+      if (parsed.password) options.pass = decodeURIComponent(parsed.password);
+      options.servers = `${parsed.protocol}//${parsed.host}`;
+    }
+  } catch {
+    // Non-URL server string (bare host:port) — leave `servers` as given.
+  }
+  return connect(options);
 }
 
 export function publishEvent(nc: NatsConnection, event: DeceptionEvent): void {

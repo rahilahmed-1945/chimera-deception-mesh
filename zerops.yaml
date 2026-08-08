@@ -1,13 +1,22 @@
-# Chimera — Zerops deployment (P2: first-cut smoke deploy).
+# Chimera — Zerops application deployment (the five app runtime services).
 #
-# Five runtime services defined here. The managed services are provisioned
-# separately in the Zerops dashboard and MUST use these hostnames so the
-# ${...} references below resolve:
-#   - PostgreSQL  ->  hostname: db     (exposes ${db_connectionString})
-#   - NATS        ->  hostname: nats   (exposes ${nats_hostname})
+# The managed backing services are provisioned SEPARATELY — see
+# infra/zerops-project-import.yml — and MUST use these hostnames so the
+# ${<hostname>_<var>} references below resolve (same-project cross-service env):
+#   - PostgreSQL     -> hostname: db       (exposes ${db_connectionString})
+#   - NATS           -> hostname: nats     (exposes ${nats_connectionString})
+#   - Valkey         -> hostname: valkey   (exposes ${valkey_connectionString})
+#   - Object storage -> hostname: storage  (exposes ${storage_apiUrl},
+#                        ${storage_bucketName}, ${storage_accessKeyId},
+#                        ${storage_secretAccessKey})
+#
+# NOTE: Zerops NATS requires authentication, so NATS_URL uses the credentialed
+# ${nats_connectionString} (nats://user:pass@host:4222). packages/transport
+# connectNats() lifts these credentials into explicit auth options, because
+# nats.js does not read them from the server URL. Valkey's URL creds are
+# consumed by ioredis as-is (no code change needed).
 #
 # Budget: free Lightweight core; shared CPU + 0.25 GB RAM per service.
-# NOT in this first cut (added at P18): object storage, Valkey, worker autoscaling.
 # All tsx services ship source + node_modules via `deployFiles: ./` and run with tsx.
 
 zerops:
@@ -28,7 +37,12 @@ zerops:
         NODE_ENV: production
         PORT: '3000'
         DATABASE_URL: '${db_connectionString}'
-        NATS_URL: 'nats://${nats_hostname}:4222'
+        NATS_URL: '${nats_connectionString}'
+        VALKEY_URL: '${valkey_connectionString}'
+        S3_ENDPOINT: '${storage_apiUrl}'
+        S3_BUCKET: '${storage_bucketName}'
+        S3_ACCESS_KEY: '${storage_accessKeyId}'
+        S3_SECRET_KEY: '${storage_secretAccessKey}'
         # JWT_SECRET is set as a SECRET env var on this service in the dashboard.
       initCommands:
         # Idempotent: drizzle-kit migrate applies only pending migrations;
@@ -72,7 +86,7 @@ zerops:
       ports:
         - port: 2222 # raw TCP (no httpSupport) so attackers reach the SSH server
       envVariables:
-        NATS_URL: 'nats://${nats_hostname}:4222'
+        NATS_URL: '${nats_connectionString}'
         DECOY_SSH_PORT: '2222'
         # DECOY_ID defaults in code to the seeded demo ssh decoy id.
       start: pnpm --filter @chimera/decoy-ssh start
@@ -91,7 +105,7 @@ zerops:
         - port: 8080
           httpSupport: true # public HTTP; attackers browse the fake login
       envVariables:
-        NATS_URL: 'nats://${nats_hostname}:4222'
+        NATS_URL: '${nats_connectionString}'
         DECOY_HTTP_PORT: '8080'
         # DECOY_HTTP_ID defaults in code to the seeded demo http decoy id.
       healthCheck:
@@ -112,5 +126,9 @@ zerops:
       base: nodejs@22
       envVariables:
         DATABASE_URL: '${db_connectionString}'
-        NATS_URL: 'nats://${nats_hostname}:4222'
+        NATS_URL: '${nats_connectionString}'
+        S3_ENDPOINT: '${storage_apiUrl}'
+        S3_BUCKET: '${storage_bucketName}'
+        S3_ACCESS_KEY: '${storage_accessKeyId}'
+        S3_SECRET_KEY: '${storage_secretAccessKey}'
       start: pnpm --filter @chimera/worker-enrich start

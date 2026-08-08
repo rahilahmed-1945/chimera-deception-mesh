@@ -1,0 +1,70 @@
+# Chimera — Zerops managed-services provisioning (import YAML).
+#
+# This file is NOT the application zerops.yaml. It is a Zerops project/service
+# IMPORT descriptor that provisions the four managed backing services Chimera
+# depends on. It is applied once, separately from deployment, with the Zerops
+# CLI:
+#
+#   # create a new project WITH these managed services:
+#   zcli project project-import infra/zerops-project-import.yml
+#
+#   # …or add these services to an EXISTING project (drop the `project:` block
+#   # below and keep only `services:`):
+#   zcli project service-import infra/zerops-project-import.yml
+#
+# The hostnames here are load-bearing: the application services in zerops.yaml
+# reference these managed services by hostname via ${<hostname>_<var>}, e.g.
+# ${db_connectionString}, ${nats_connectionString}, ${valkey_connectionString},
+# ${storage_apiUrl}. Do not rename them without updating zerops.yaml.
+#
+# The application runtime services (api, web, decoy-ssh, decoy-http,
+# worker-enrich) are NOT defined here — they are built and deployed from the
+# application zerops.yaml (via GitHub integration or `zcli push`).
+
+project:
+  # Rename to match your Zerops project. Only used when creating a NEW project;
+  # ignored by `service-import` into an existing project.
+  name: chimera
+  tags:
+    - chimera
+    - deception-mesh
+
+services:
+  # PostgreSQL — source of truth (events, attackers, decoys, users).
+  # Exposes ${db_connectionString} = postgresql://user:pass@db:5432/db
+  # Consumed by: api (DATABASE_URL), worker-enrich (DATABASE_URL).
+  - hostname: db
+    type: postgresql@16
+    mode: NON_HA
+    priority: 10
+
+  # NATS — the event spine (subject `chimera.events`, core pub/sub).
+  # Exposes ${nats_connectionString} = nats://user:pass@nats:4222 (auth is
+  # REQUIRED by Zerops NATS). Consumed by: api, worker-enrich, decoy-ssh,
+  # decoy-http (all NATS_URL). packages/transport connectNats() lifts these
+  # credentials into explicit auth options (nats.js ignores URL userinfo).
+  - hostname: nats
+    type: nats@2.10
+    mode: NON_HA
+    priority: 10
+
+  # Valkey — short-TTL read-through cache for /stats (optional accelerator;
+  # the API degrades gracefully to Postgres if absent).
+  # Exposes ${valkey_connectionString} = redis://default:pass@valkey:6379
+  # Consumed by: api (VALKEY_URL). ioredis reads the URL credentials directly.
+  - hostname: valkey
+    type: valkey@7.2
+    mode: NON_HA
+    priority: 10
+
+  # Object storage (S3-compatible, MinIO) — SSH session transcripts (P9).
+  # Exposes ${storage_apiUrl}, ${storage_bucketName}, ${storage_accessKeyId},
+  # ${storage_secretAccessKey}. Consumed by: worker-enrich (writes transcripts)
+  # and api (signs short-lived GET URLs the browser fetches). Policy is
+  # `private` — access is via presigned URLs, which work on private buckets, so
+  # the bucket is never publicly listable.
+  - hostname: storage
+    type: object-storage
+    objectStorageSize: 2
+    objectStoragePolicy: private
+    priority: 10
