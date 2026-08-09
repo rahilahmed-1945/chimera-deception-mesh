@@ -74,6 +74,8 @@ zerops:
       # (P1: the client derives both the REST base and the WS URL from it.)
     run:
       base: static
+      routing:
+        root: /apps/web/build
 
   # --- Hero decoy: SSH honeypot (public TCP 2222) ----------------------------
   - setup: decoy-ssh
