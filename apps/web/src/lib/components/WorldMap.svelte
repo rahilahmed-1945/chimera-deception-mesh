@@ -7,7 +7,7 @@
   import StatusPill from './StatusPill.svelte';
 
   // Free dark basemap, no API key (client fetches tiles).
-  const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+  const DARK_STYLE = 'https://tiles.openfreemap.org/styles/dark';
 
   // Genuinely-recent events flash; older (historical) events just appear. Using
   // createdAt recency is robust regardless of hydrate/live arrival order.
