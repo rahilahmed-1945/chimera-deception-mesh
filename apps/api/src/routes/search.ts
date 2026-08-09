@@ -38,6 +38,8 @@ export async function searchRoutes(app: FastifyInstance): Promise<void> {
         ...getTableColumns(events),
         decoyType: decoyTemplates.protocol,
         reputation: attackers.reputation,
+        latitude: attackers.latitude,
+        longitude: attackers.longitude,
       })
       .from(events)
       .innerJoin(decoys, eq(events.decoyId, decoys.id))

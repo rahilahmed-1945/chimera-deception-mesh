@@ -2,6 +2,7 @@ import type { DeceptionEventParsed } from '@chimera/shared';
 import { and, eq } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { attackers, db, decoys, events } from './db.js';
+import { clientIpForGeo } from './client-ip.js';
 import { mapTechniques } from './detectors/mitre.js';
 import { lookupReputation } from './detectors/reputation.js';
 import { lookupGeo } from './geoip.js';
@@ -33,7 +34,12 @@ export async function enrichEvent(event: DeceptionEventParsed, log: Logger): Pro
     return;
   }
 
-  const geo = lookupGeo(event.sourceIp);
+  // GeoIP: behind a proxy, sourceIp is the proxy's private address (not
+  // geolocatable), so geolocate the real client IP from X-Forwarded-For when
+  // available. sourceIp is preserved exactly (identity/transport) and is used
+  // as the fallback (e.g. SSH has no XFF). No coordinates are fabricated.
+  const geoIp = clientIpForGeo(event.payload) ?? event.sourceIp;
+  const geo = lookupGeo(geoIp);
   const reputation = await lookupReputation(event.sourceIp);
 
   const attackerSet = {
@@ -61,7 +67,9 @@ export async function enrichEvent(event: DeceptionEventParsed, log: Logger): Pro
     );
   }
 
-  const techniques = mapTechniques(event.kind);
+  // Infrastructure/health-check traffic is captured but never MITRE-classified
+  // as an attack technique (it is not attacker activity).
+  const techniques = event.payload.source === 'health-check' ? [] : mapTechniques(event.kind);
   if (techniques.length > 0) {
     await withRetry(
       async () => {
@@ -78,7 +86,7 @@ export async function enrichEvent(event: DeceptionEventParsed, log: Logger): Pro
   }
 
   log.info(
-    { ip: event.sourceIp, geo: geo?.country ?? null, reputation, techniques },
+    { ip: event.sourceIp, geoIp, geo: geo?.country ?? null, reputation, techniques },
     'event enriched',
   );
 }

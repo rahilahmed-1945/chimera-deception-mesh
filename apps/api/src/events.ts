@@ -35,7 +35,11 @@ async function ingest(event: DeceptionEventParsed): Promise<void> {
       target: [attackers.tenantId, attackers.ip],
       set: { lastSeenAt: new Date(), eventCount: sql`${attackers.eventCount} + 1` },
     })
-    .returning({ id: attackers.id });
+    .returning({
+      id: attackers.id,
+      latitude: attackers.latitude,
+      longitude: attackers.longitude,
+    });
 
   const [row] = await db
     .insert(events)
@@ -53,5 +57,7 @@ async function ingest(event: DeceptionEventParsed): Promise<void> {
 
   await db.update(decoys).set({ lastEventAt: new Date() }).where(eq(decoys.id, decoy.id));
 
-  broadcast(row);
+  // Attach the attacker's coordinates (null until enriched; present for repeat
+  // attackers already enriched) so live events carry the same lat/lon as REST.
+  broadcast({ ...row, latitude: attacker.latitude, longitude: attacker.longitude });
 }

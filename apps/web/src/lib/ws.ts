@@ -7,8 +7,21 @@ export interface ConnectOptions {
   onStatus?: (status: 'open' | 'closed') => void;
 }
 
+// Resolve the WebSocket URL from the environment (VITE_API_URL). The dev value
+// lives in apps/web/.env.development; set VITE_API_URL at build time for
+// production. http(s) -> ws(s), path /ws. Falls back to the current origin so
+// no host is hardcoded.
 function defaultWsUrl(): string {
-  return 'ws://localhost:3000/ws';
+  const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (apiUrl) {
+    const u = new URL(apiUrl);
+    u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
+    u.pathname = '/ws';
+    u.search = '';
+    return u.toString();
+  }
+  const { protocol, host } = window.location;
+  return `${protocol === 'https:' ? 'wss:' : 'ws:'}//${host}/ws`;
 }
 
 /** Connect and stream events to `onEvent`. Returns a disconnect function. */

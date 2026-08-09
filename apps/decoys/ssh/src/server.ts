@@ -3,8 +3,14 @@ import type { DeceptionEvent } from '@chimera/shared';
 import type { Logger } from 'pino';
 import ssh2 from 'ssh2';
 import type { Connection, Server } from 'ssh2';
-import { buildAuthAttemptEvent, buildConnectionEvent, type SshSession } from './events.js';
+import {
+  buildAuthAttemptEvent,
+  buildConnectionEvent,
+  buildDisconnectEvent,
+  type SshSession,
+} from './events.js';
 import { loadHostKey } from './hostkey.js';
+import { runExec, runFakeShell } from './shell.js';
 
 export interface SshDecoyOptions {
   port: number;
@@ -14,7 +20,10 @@ export interface SshDecoyOptions {
   ident?: string;
 }
 
-/** Start the SSH honeypot. Rejects all authentication; captures every attempt. */
+/**
+ * Start the SSH honeypot. Accepts password logins into a fake shell; captures
+ * authentication attempts, typed commands, and the session lifecycle.
+ */
 export function startSshDecoy(opts: SshDecoyOptions): Server {
   const hostKey = loadHostKey();
 
@@ -42,11 +51,21 @@ function handleClient(
     sourceIp: info.ip,
     sourcePort: info.port,
   };
+  let username = 'root';
+
+  // Emit the disconnect event exactly once when the session ends.
+  let disconnected = false;
+  const emitDisconnect = (): void => {
+    if (disconnected) return;
+    disconnected = true;
+    safePublish(opts, buildDisconnectEvent(session));
+  };
 
   safePublish(opts, buildConnectionEvent(session));
 
   client.on('authentication', (ctx) => {
     if (ctx.method === 'password') {
+      username = ctx.username || 'root';
       safePublish(
         opts,
         buildAuthAttemptEvent(session, {
@@ -55,17 +74,41 @@ function handleClient(
           method: 'password',
         }),
       );
-      ctx.reject();
+      // Grant the login so the attacker enters the fake shell (creds captured
+      // above). The shell never executes anything — see shell.ts.
+      ctx.accept();
       return;
     }
     // Funnel every other method toward password so credentials get captured.
     ctx.reject(['password']);
   });
 
+  client.on('ready', () => {
+    client.on('session', (accept) => {
+      const sshSession = accept();
+      sshSession.on('pty', (ptyAccept) => ptyAccept());
+      sshSession.on('shell', (shellAccept) => {
+        runFakeShell(shellAccept(), {
+          session,
+          username,
+          emit: (event) => safePublish(opts, event),
+          onEnd: emitDisconnect,
+        });
+      });
+      sshSession.on('exec', (execAccept, _reject, execInfo) => {
+        runExec(execAccept(), session, username, execInfo.command, (event) =>
+          safePublish(opts, event),
+        );
+        emitDisconnect();
+      });
+    });
+  });
+
+  client.on('close', emitDisconnect);
+  client.on('end', emitDisconnect);
   client.on('error', (err: Error) =>
     opts.log.warn({ err, ip: session.sourceIp }, 'ssh client error'),
   );
-  // 'disconnect' events are deferred to a later milestone (decision).
 }
 
 /** Publishing must never take down the honeypot — log and continue. */

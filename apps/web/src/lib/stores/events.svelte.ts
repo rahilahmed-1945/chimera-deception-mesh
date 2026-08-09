@@ -8,7 +8,17 @@ let events = $state<EventRow[]>([]);
 let selectedId = $state<string | null>(null);
 let stats = $state<Stats | null>(null);
 let wsStatus = $state<'open' | 'closed'>('closed');
+// True once the WS has opened at least once — lets the UI distinguish the
+// initial CONNECTING state from a later RECONNECTING state (honestly).
+let hasConnected = $state(false);
+// True once the real MapLibre basemap has loaded (drives the map init state and
+// the presentation entry's honest "threat map" readiness signal).
+let mapReady = $state(false);
 let restError = $state<string | null>(null);
+// Monotonic counter bumped once per genuinely-new live event (addLive only).
+// The live-attack choreography (U4) keys off changes to this — NEVER off event
+// count, so hydration/refresh/reconnect backfill never trigger it.
+let liveSeq = $state(0);
 
 const seen = new Set<string>();
 const decoyTypeByDecoy = new Map<string, string>();
@@ -44,16 +54,36 @@ export const store = {
   get wsStatus() {
     return wsStatus;
   },
+  get hasConnected() {
+    return hasConnected;
+  },
+  get mapReady() {
+    return mapReady;
+  },
+  setMapReady(): void {
+    mapReady = true;
+  },
   get restError() {
     return restError;
   },
+  get liveSeq() {
+    return liveSeq;
+  },
 
-  /** Merge a REST snapshot: dedupe by id, enrich existing rows, keep sorted. */
+  /**
+   * Merge a REST snapshot: upsert by id so re-hydration (refresh / WS reconnect)
+   * refreshes existing events with newer data — notably GeoIP coordinates that
+   * arrived after the live frame. Live-only events (newer than the snapshot) are
+   * preserved. Deduped by id, enriched, kept newest-first and capped.
+   */
   hydrate(rows: EventRow[]): void {
     for (const r of rows) remember(r);
-    const fresh = rows.filter((r) => !seen.has(r.id));
-    for (const r of fresh) seen.add(r.id);
-    events = [...events, ...fresh].map(enrich).sort(byNewest).slice(0, MAX);
+    const byId = new Map(events.map((e) => [e.id, e]));
+    for (const r of rows) {
+      byId.set(r.id, enrich(r));
+      seen.add(r.id);
+    }
+    events = [...byId.values()].sort(byNewest).slice(0, MAX);
     restError = null;
   },
 
@@ -64,6 +94,10 @@ export const store = {
     seen.add(raw.id);
     events = [enrich(raw), ...events].slice(0, MAX);
     if (stats) stats = { ...stats, totalEvents: stats.totalEvents + 1 };
+    // Genuinely-new live ATTACK event: signal the choreography exactly once.
+    // Infrastructure/health-check traffic is captured and shown in the feed, but
+    // never raises the attack signal (no THREAT DETECTED / live-attack pulse).
+    if (raw.payload?.source !== 'health-check') liveSeq += 1;
   },
 
   select(id: string | null): void {
@@ -74,6 +108,7 @@ export const store = {
   },
   setStatus(s: 'open' | 'closed'): void {
     wsStatus = s;
+    if (s === 'open') hasConnected = true;
   },
   setError(msg: string | null): void {
     restError = msg;

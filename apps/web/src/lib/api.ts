@@ -8,8 +8,10 @@ import type {
   Template,
 } from './types';
 
-// Defaults to the local API; override at build time with VITE_API_URL.
-const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+// API base URL from the environment (VITE_API_URL). The development value lives
+// in apps/web/.env.development; set VITE_API_URL at build time for production.
+// Empty => same-origin (relative) requests, so no host is hardcoded.
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 export async function fetchRecentEvents(limit = 100): Promise<EventRow[]> {
   const res = await fetch(`${API_BASE}/events?limit=${limit}`);
@@ -27,6 +29,24 @@ export async function fetchEventDetail(id: string): Promise<EventDetail> {
   const res = await fetch(`${API_BASE}/events/${id}`);
   if (!res.ok) throw new Error(`GET /events/${id} failed: ${res.status}`);
   return (await res.json()) as EventDetail;
+}
+
+// Fetch an event's session transcript text. Two hops: ask our API for a
+// short-lived signed URL, then GET that exact URL from the browser. Returns the
+// raw transcript text, or null when the transcript isn't available yet (409/404
+// — a normal "not ready" state, not an error). Both fetches honour `signal` so a
+// superseded selection can abort in flight. The signed URL is never logged.
+export async function fetchEventTranscript(
+  id: string,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const res = await fetch(`${API_BASE}/events/${id}/transcript`, { signal });
+  if (res.status === 409 || res.status === 404) return null;
+  if (!res.ok) throw new Error(`GET /events/${id}/transcript failed: ${res.status}`);
+  const { url } = (await res.json()) as { url: string; expiresIn: number };
+  const obj = await fetch(url, { signal });
+  if (!obj.ok) throw new Error(`transcript object fetch failed: ${obj.status}`);
+  return obj.text();
 }
 
 export async function fetchTemplates(): Promise<Template[]> {

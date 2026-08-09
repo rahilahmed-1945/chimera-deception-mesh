@@ -2,6 +2,8 @@ node_modules/
 .env
 .env.*
 !.env.example
+# Committed dev-only frontend config (no secrets); provides VITE_API_URL for `vite dev`.
+!apps/web/.env.development
 dist/
 build/
 .svelte-kit/

@@ -13,6 +13,13 @@ export interface EventRow {
   payload: Record<string, unknown>;
   createdAt: string; // ISO-8601
   decoyType?: string;
+  // Present on search results (joined attacker reputation); absent on live list
+  // rows. Rendered only when set.
+  reputation?: string | null;
+  // Attacker geo coordinates (null until enriched). Present on every
+  // frontend-facing event: REST list, search, WS live, and detail.
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface Stats {
@@ -22,12 +29,11 @@ export interface Stats {
   lastHour: number;
 }
 
-// Enriched single-event response from GET /events/:id (event + attacker geo/reputation).
+// Enriched single-event response from GET /events/:id. latitude/longitude are
+// inherited from EventRow; this adds the remaining attacker fields.
 export interface EventDetail extends EventRow {
   countryCode: string | null;
   city: string | null;
-  latitude: number | null;
-  longitude: number | null;
   reputation: string | null;
 }
 
