@@ -100,7 +100,7 @@ zerops:
         # DECOY_ID defaults in code to the seeded demo ssh decoy id.
       start: pnpm --filter @chimera/decoy-ssh start
 
-  # --- Second decoy: fake HTTP admin panel (public HTTP 8080) -----------------
+  # --- Second decoy: fake HTTP admin panel (raw TCP 8080, real client IP) -----
   - setup: decoyhttp
     build:
       base: nodejs@22
@@ -113,16 +113,11 @@ zerops:
       prepareCommands:
         - npm i -g pnpm@10.34.5 --force
       ports:
-        - port: 8080
-          httpSupport: true # public HTTP; attackers browse the fake login
+        - port: 8080 # raw TCP (no httpSupport) so the decoy sees the real client IP
       envVariables:
         NATS_URL: '${nats_connectionString}'
         DECOY_HTTP_PORT: '8080'
         # DECOY_HTTP_ID defaults in code to the seeded demo http decoy id.
-      healthCheck:
-        httpGet:
-          port: 8080
-          path: /
       start: pnpm --filter @chimera/decoy-http start
 
   # --- Enrichment worker: NO public port -------------------------------------
