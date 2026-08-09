@@ -81,7 +81,7 @@ zerops:
         root: /apps/web/build
 
   # --- Hero decoy: SSH honeypot (public TCP 2222) ----------------------------
-  - setup: decoy-ssh
+  - setup: decoyssh
     build:
       base: nodejs@22
       buildCommands:
@@ -101,7 +101,7 @@ zerops:
       start: pnpm --filter @chimera/decoy-ssh start
 
   # --- Second decoy: fake HTTP admin panel (public HTTP 8080) -----------------
-  - setup: decoy-http
+  - setup: decoyhttp
     build:
       base: nodejs@22
       buildCommands:
@@ -126,7 +126,7 @@ zerops:
       start: pnpm --filter @chimera/decoy-http start
 
   # --- Enrichment worker: NO public port -------------------------------------
-  - setup: worker-enrich
+  - setup: workerenrich
     build:
       base: nodejs@22
       buildCommands:

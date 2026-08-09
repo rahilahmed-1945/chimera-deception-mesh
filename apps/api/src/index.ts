@@ -12,7 +12,18 @@ const app = Fastify({
   logger: true,
 });
 
-await app.register(cors, { origin: true });
+// CORS: allow the deployed dashboard origin and local development. Requests with
+// no Origin (curl, health checks, server-to-server) are allowed; any other
+// browser origin is rejected. WebSocket handling is registered separately below
+// and is unaffected by this.
+const allowedOrigins = ['https://web-2c44.prg1.zerops.app'];
+const isLocalOrigin = (origin: string): boolean =>
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+await app.register(cors, {
+  origin(origin, cb) {
+    cb(null, !origin || allowedOrigins.includes(origin) || isLocalOrigin(origin));
+  },
+});
 
 // Liveness probe.
 app.get('/healthz', async () => ({
