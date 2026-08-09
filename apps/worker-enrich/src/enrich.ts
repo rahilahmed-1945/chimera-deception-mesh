@@ -61,7 +61,9 @@ export async function enrichEvent(event: DeceptionEventParsed, log: Logger): Pro
     );
   }
 
-  const techniques = mapTechniques(event.kind);
+  // Infrastructure/health-check traffic is captured but never MITRE-classified
+  // as an attack technique (it is not attacker activity).
+  const techniques = event.payload.source === 'health-check' ? [] : mapTechniques(event.kind);
   if (techniques.length > 0) {
     await withRetry(
       async () => {

@@ -1,4 +1,4 @@
-import { count, desc, eq, getTableColumns, gt, lt } from 'drizzle-orm';
+import { count, countDistinct, desc, eq, getTableColumns, gt, lt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../db/client.js';
@@ -114,7 +114,13 @@ export async function eventRoutes(app: FastifyInstance): Promise<void> {
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const [[totals], [attackerCount], [decoyCount], [recent]] = await Promise.all([
       db.select({ c: count() }).from(events),
-      db.select({ c: count() }).from(attackers),
+      // Unique actors = attackers with at least one genuine (non-health-check)
+      // event. Infrastructure/health-check traffic is excluded so Zerops probes
+      // never inflate the actor count; the attacker row itself is preserved.
+      db
+        .select({ c: countDistinct(events.attackerId) })
+        .from(events)
+        .where(sql`${events.payload}->>'source' is distinct from 'health-check'`),
       db.select({ c: count() }).from(decoys),
       db.select({ c: count() }).from(events).where(gt(events.createdAt, hourAgo)),
     ]);

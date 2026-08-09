@@ -29,7 +29,10 @@
 
   const events = $derived(store.events);
   const liveEvents = $derived(events.length);
-  const activeSources = $derived(new Set(events.map((e) => e.sourceIp)).size);
+  // Distinct genuine actor IPs — infrastructure/health-check traffic excluded.
+  const activeSources = $derived(
+    new Set(events.filter((e) => e.payload?.source !== 'health-check').map((e) => e.sourceIp)).size,
+  );
   const perMin = $derived(
     events.reduce((n, e) => (nowTick - Date.parse(e.createdAt) < 60_000 ? n + 1 : n), 0),
   );

@@ -94,8 +94,10 @@ export const store = {
     seen.add(raw.id);
     events = [enrich(raw), ...events].slice(0, MAX);
     if (stats) stats = { ...stats, totalEvents: stats.totalEvents + 1 };
-    // Genuinely-new live event: signal the choreography exactly once.
-    liveSeq += 1;
+    // Genuinely-new live ATTACK event: signal the choreography exactly once.
+    // Infrastructure/health-check traffic is captured and shown in the feed, but
+    // never raises the attack signal (no THREAT DETECTED / live-attack pulse).
+    if (raw.payload?.source !== 'health-check') liveSeq += 1;
   },
 
   select(id: string | null): void {
