@@ -63,15 +63,18 @@ zerops:
   - setup: web
     build:
       base: nodejs@22
+      # VITE_API_URL is baked into the static bundle at BUILD time by Vite, so it
+      # MUST be a build env var here: Zerops build and runtime are separate
+      # environments, so a runtime/dashboard variable would NOT reach the build.
+      # It must equal the api's PUBLIC url — the client derives both the REST base
+      # and the WebSocket (/ws) URL from it (P1). Update it if the api url changes.
+      envVariables:
+        VITE_API_URL: https://api-2c44-3000.prg1.zerops.app
       buildCommands:
         - npm i -g pnpm@10.34.5 --force
         - pnpm install --frozen-lockfile
         - pnpm --filter @chimera/web build
       deployFiles: apps/web/build
-      # VITE_API_URL must equal the api's PUBLIC URL at build time. Set it as an
-      # env var on this `web` service in the dashboard, then redeploy web, e.g.
-      #   VITE_API_URL=https://<api-public-subdomain>
-      # (P1: the client derives both the REST base and the WS URL from it.)
     run:
       base: static
       routing:
