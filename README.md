@@ -1,4 +1,5 @@
 # CHIMERA — Deception Mesh
+Chimera is a cloud-native deception platform that deploys realistic HTTP and SSH decoys to attract and capture suspicious activity, enrich it with location, reputation, and MITRE ATT&CK context, and stream the resulting threat intelligence to a live dashboard for real-time monitoring and investigation.
 
 > **Turn every unauthorized touch into threat intelligence.** Chimera deploys realistic decoy services, captures every interaction as structured telemetry, enriches it with geolocation, IP reputation and MITRE ATT&CK context, and streams it live to an operator dashboard.
 
