@@ -660,5 +660,4 @@ This project was built with the assistance of AI coding tools — primarily **Cl
 Security spends most of its effort separating the one malicious signal from an ocean of legitimate noise. Chimera removes the ocean. A decoy has **no legitimate users**, so _every_ interaction with it is meaningful by construction — and Chimera takes that clean signal and runs it through a real pipeline: **deception → telemetry → enrichment → intelligence → visualization**, with a clear path toward **response**.
 
 > **An attacker interacting with something they were never supposed to touch is, in itself, a high-value security signal.**
-
 Chimera turns that idea into a working, deployed, observable system — an
