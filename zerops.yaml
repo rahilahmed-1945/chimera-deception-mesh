@@ -30,6 +30,8 @@ zerops:
       deployFiles: ./
     run:
       base: nodejs@22
+      prepareCommands:
+        - npm i -g pnpm@10.34.5 --force
       ports:
         - port: 3000
           httpSupport: true # public HTTP + WebSocket upgrade on /ws
@@ -83,6 +85,8 @@ zerops:
       deployFiles: ./
     run:
       base: nodejs@22
+      prepareCommands:
+        - npm i -g pnpm@10.34.5 --force
       ports:
         - port: 2222 # raw TCP (no httpSupport) so attackers reach the SSH server
       envVariables:
@@ -101,6 +105,8 @@ zerops:
       deployFiles: ./
     run:
       base: nodejs@22
+      prepareCommands:
+        - npm i -g pnpm@10.34.5 --force
       ports:
         - port: 8080
           httpSupport: true # public HTTP; attackers browse the fake login
@@ -124,6 +130,8 @@ zerops:
       deployFiles: ./
     run:
       base: nodejs@22
+      prepareCommands:
+        - npm i -g pnpm@10.34.5 --force
       envVariables:
         DATABASE_URL: '${db_connectionString}'
         NATS_URL: '${nats_connectionString}'
