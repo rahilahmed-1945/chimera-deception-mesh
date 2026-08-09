@@ -23,7 +23,20 @@ const LOGIN_PAGE = `<!doctype html>
   </form>
 </body></html>`;
 
-const CAPTURED_HEADERS = ['user-agent', 'referer', 'x-forwarded-for', 'authorization'];
+// TEMPORARY (diagnostic): x-real-ip / x-forwarded-proto / x-forwarded-host are
+// captured only to inspect how the Zerops L7 balancer forwards the real client
+// IP (H1 vs H2). This does NOT change GeoIP logic, sourceIp, or storage — the
+// headers are just persisted for inspection. Revert to the original four once
+// the client-IP source is confirmed.
+const CAPTURED_HEADERS = [
+  'user-agent',
+  'referer',
+  'x-forwarded-for',
+  'x-real-ip',
+  'x-forwarded-proto',
+  'x-forwarded-host',
+  'authorization',
+];
 
 /** Start the HTTP honeypot. Captures every request; always rejects login. */
 export async function startHttpDecoy(opts: HttpDecoyOptions): Promise<FastifyInstance> {
